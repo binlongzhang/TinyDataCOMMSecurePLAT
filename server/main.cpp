@@ -46,9 +46,10 @@ void createDeamon()
 	chdir("/home");
 	// 4. 设置掩码
 	umask(0022);
-	// 5. 重定向文件描述符 - /dev/null
+
+	// 5. 重定向文件描述符 - /dev/null-->黑洞设备
 	int devfd = open("/dev/null", O_RDWR);
-	dup2(devfd, 0);
-	// dup2(devfd, 1); // 调试的时候需要看输出
-	dup2(devfd, 2);
+	dup2(devfd, STDIN_FILENO);
+	// dup2(devfd, STDOUT_FILENO); // 调试的时候需要看输出
+	dup2(devfd, STDERR_FILENO);
 }

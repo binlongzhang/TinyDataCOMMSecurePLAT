@@ -4,6 +4,7 @@
 #include "TcpServer.h"
 #include "RequestCodec.h"
 // #include "OCCIOP.h"
+#include <pthread.h>
 #include <map>
 
 class ServerInfo
@@ -44,6 +45,10 @@ public:
 	static void* wrokingHard(void* arg);
 	static void catchSignal(int num);
 
+	//	sockeList共享资源访问控制
+	void socketListLock();
+	void socketListUnLock();
+
 private:
 	void getRandString(int len, char* randBuf);
 
@@ -54,7 +59,7 @@ private:
 	TcpSocket* m_client;
 	// OCCIOP m_occi;
 	std::map<pthread_t, TcpSocket*> m_listSocket;
+	// pthread_mutex_t m_socketListLock = PTHREAD_MUTEX_INITIALIZER;
 	static bool m_stop;
+	pthread_spinlock_t m_spinlock_SocketMap;
 };
-
-

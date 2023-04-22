@@ -16,6 +16,8 @@ ServerOperation::ServerOperation(ServerInfo * info)
 	memcpy(&m_info, info, sizeof(ServerInfo));
 	// 创建共享内存对象
 	m_shm = new SecKeyShm(info->shmkey, info->maxnode);
+	// 	初始化socket map自旋锁
+	pthread_spin_init(&m_spinlock_SocketMap,PTHREAD_PROCESS_PRIVATE);
 	// 连接oracle数据库
 	// bool bl = m_occi.connectDB("SECMNG", "SECMNG", "192.168.10.145:1521/orcl");
 	// if (!bl)
@@ -28,7 +30,8 @@ ServerOperation::~ServerOperation()
 {
 	m_shm->delShm();
 	delete m_shm;
-	// 关闭数据库
+	// destroy socketMap 锁
+	pthread_spin_destroy(&m_spinlock_SocketMap);
 	// m_occi.closeDB();
 }
 
@@ -61,10 +64,13 @@ void ServerOperation::startWork()
 		cout << "客户端成功连接服务器..." << endl;
 		// 创建子线程
 		pthread_t pid;
+		// 先加锁，确保放入之后再解锁
+		pthread_spin_lock(&m_spinlock_SocketMap);
 		pthread_create(&pid, NULL, wrokingHard, this);
 		// 线程分离, 子线程自己释放pcb
 		pthread_detach(pid);
 		m_listSocket.insert(make_pair(pid, socket));
+		pthread_spin_unlock(&m_spinlock_SocketMap);
 	}
 }
 
@@ -133,7 +139,11 @@ void * ServerOperation::wrokingHard(void * arg)
 	char* recvBuf = NULL;
 	ServerOperation *sop = (ServerOperation*)arg;
 	pthread_t threadID = pthread_self();
+	
+	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
 	TcpSocket* socket = sop->m_listSocket[threadID];
+	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
+
 	// recvBuf -> 客户端序列化之后的数据
 	socket->recvMsg(&recvBuf, recvLen);
 
@@ -187,9 +197,12 @@ void * ServerOperation::wrokingHard(void * arg)
 
 	// 通信完成, 释放内存
 	delete factory;
-	// 从容器中删除键值对,注意stl是非线程安全的，这里需要改进
+	// 从容器中删除键值对,注意stl是非线程安全的，这里进行改进
+	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
 	auto it = sop->m_listSocket.find(threadID);
 	sop->m_listSocket.erase(it);
+	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
+
 	delete socket;
 
 	
@@ -243,7 +256,10 @@ void * wroking(void * arg)
 	char* recvBuf = NULL;
 	ServerOperation *sop = (ServerOperation*)arg;
 	pthread_t threadID = pthread_self();
+	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
 	TcpSocket* socket = sop->m_listSocket[threadID];
+	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
+
 	// recvBuf -> 客户端序列化之后的数据
 	socket->recvMsg(&recvBuf, recvLen);
 
@@ -287,7 +303,7 @@ void * wroking(void * arg)
 		break;
 	case RequestCodec::Check:
 		break;
-	case RequestCodec::Revoke:
+	case RequestCodec::Revoke:  
 		break;
 	default:
 		break;
@@ -298,9 +314,11 @@ void * wroking(void * arg)
 	// 通信完成, 释放内存
 	delete factory;
 	// 从容器中删除键值对
-	//map<pthread_t, TcpSocket*>::iterator it = sop->m_listSocket.find(threadID);
+	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
 	auto it = sop->m_listSocket.find(threadID);
 	sop->m_listSocket.erase(it);
+	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
+
 	delete socket;
 
 	return NULL;
