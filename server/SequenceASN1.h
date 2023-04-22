@@ -28,12 +28,12 @@ public:
     int unpackSequence(char* inData, int inLen);
 
     // 释放链表
-    void freeSequence(ITCAST_ANYBUF* node = NULL);
+    void freeSequence(My_ANYBUF* node = NULL);
 
 private:
-    ITCAST_ANYBUF* m_header = NULL;
-	ITCAST_ANYBUF* m_next   = NULL;
-	ITCAST_ANYBUF* m_temp   = NULL;
+    My_ANYBUF* m_header = NULL;
+	My_ANYBUF* m_next   = NULL;
+	My_ANYBUF* m_temp   = NULL;
 };
 
 #endif // ASN1DER_H

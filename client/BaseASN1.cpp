@@ -12,22 +12,22 @@ BaseASN1::BaseASN1()
 // 不知道干什么的一个宏, 尼玛...
 #define OIDDEF(tag, oidValue) {tag, {oidValue,sizeof(oidValue),0,1,0,0,0} }
 
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetTagInfo(ITCAST_UINT8 **ppDerData, ITCAST_UINT32 **ppTagValue, ITCAST_UINT32 **ppTagSize)
+My_INT BaseASN1::DER_ItAsn1_Low_GetTagInfo(My_UINT8 **ppDerData, My_UINT32 **ppTagValue, My_UINT32 **ppTagSize)
 {
-    ITCAST_UINT8 *pMidData = NULL;
-    ITCAST_UINT32 *pMidValue = NULL;
-    ITCAST_UINT32 *pMidSize = NULL;
+    My_UINT8 *pMidData = NULL;
+    My_UINT32 *pMidValue = NULL;
+    My_UINT32 *pMidSize = NULL;
 
     //初始化
-    pMidValue = (ITCAST_UINT32*)malloc(sizeof(ITCAST_UINT32));
-    // pMidValue = new ITCAST_UINT32;
+    pMidValue = (My_UINT32*)malloc(sizeof(My_UINT32));
+    // pMidValue = new My_UINT32;
     if (pMidValue == NULL)
     {
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, MemoryErr, "func DER_ItAsn1_Low_GetTagInfo() err");
         return MemoryErr;
     }
-    pMidSize = (ITCAST_UINT32*)malloc(sizeof(ITCAST_UINT32));
-    // pMidSize = new ITCAST_UINT32;
+    pMidSize = (My_UINT32*)malloc(sizeof(My_UINT32));
+    // pMidSize = new My_UINT32;
     if (pMidSize == NULL)
     {
         if (pMidValue) { free(pMidValue); pMidValue = NULL; }
@@ -39,22 +39,22 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetTagInfo(ITCAST_UINT8 **ppDerData, ITCAST_
     *pMidValue = 0;
     pMidData = *ppDerData;
     //读Tag
-    if ((*pMidData & ITCAST_DER_SHORT_ID_MASK) != ITCAST_DER_SHORT_ID_MASK)
+    if ((*pMidData & My_DER_SHORT_ID_MASK) != My_DER_SHORT_ID_MASK)
     {
-        if (*pMidData & ITCAST_DER_CONTEXT_SPECIFIC)
+        if (*pMidData & My_DER_CONTEXT_SPECIFIC)
             *pMidValue = *(pMidData++);
         else
-            *pMidValue = *(pMidData++) & ITCAST_DER_SHORT_ID_MASK;
+            *pMidValue = *(pMidData++) & My_DER_SHORT_ID_MASK;
         (*pMidSize)++;
     }
     else
     {
         do
         {
-            *pMidValue = *pMidValue | (*(++pMidData) & ITCAST_DER_FIRST_NOT_ID_MASK);
+            *pMidValue = *pMidValue | (*(++pMidData) & My_DER_FIRST_NOT_ID_MASK);
             *pMidValue <<= 8;
             (*pMidSize)++;
-        } while (!(*pMidData & ITCAST_DER_FIRST_YES_ID_MASK));
+        } while (!(*pMidData & My_DER_FIRST_YES_ID_MASK));
         *pMidValue |= *(pMidData++);
         (*pMidSize)++;
     }
@@ -70,7 +70,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetTagInfo(ITCAST_UINT8 **ppDerData, ITCAST_
     return 0;
 }
 
-ITCAST_UINT32 BaseASN1::DER_ItAsn1_Low_Count_LengthOfSize(ITCAST_UINT32 iLength)
+My_UINT32 BaseASN1::DER_ItAsn1_Low_Count_LengthOfSize(My_UINT32 iLength)
 {
     if (iLength <= 0x7F)
         return (1);
@@ -93,12 +93,12 @@ ITCAST_UINT32 BaseASN1::DER_ItAsn1_Low_Count_LengthOfSize(ITCAST_UINT32 iLength)
                     }
 }
 
-ITCAST_INT BaseASN1::DER_ItAsn1_GetLengthInfo(ITCAST_ANYBUF *pDerData, int *pLengthValue, int *pLengthSize)
+My_INT BaseASN1::DER_ItAsn1_GetLengthInfo(My_ANYBUF *pDerData, int *pLengthValue, int *pLengthSize)
 {
-    ITCAST_UINT8 *pData;
+    My_UINT8 *pData;
     int iSizeOf, iSize = 0, i;
     pData = pDerData->pData;
-    if ((*pData & ITCAST_DER_SHORT_ID_MASK) != ITCAST_DER_SHORT_ID_MASK)
+    if ((*pData & My_DER_SHORT_ID_MASK) != My_DER_SHORT_ID_MASK)
         pData++;
     else
     {
@@ -109,7 +109,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_GetLengthInfo(ITCAST_ANYBUF *pDerData, int *pLen
         } while (!(*pData & 80));
     }
     ++pData;
-    iSizeOf = *pData & ITCAST_DER_FIRST_NOT_ID_MASK;
+    iSizeOf = *pData & My_DER_FIRST_NOT_ID_MASK;
     if (!(*pData & 80))
     {
         *pLengthSize = 1;
@@ -128,24 +128,24 @@ ITCAST_INT BaseASN1::DER_ItAsn1_GetLengthInfo(ITCAST_ANYBUF *pDerData, int *pLen
     return 0;
 }
 
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetLengthInfo(ITCAST_UINT8 **ppDerData, ITCAST_UINT32 **ppLengthValue, ITCAST_UINT32 **ppLengthSize)
+My_INT BaseASN1::DER_ItAsn1_Low_GetLengthInfo(My_UINT8 **ppDerData, My_UINT32 **ppLengthValue, My_UINT32 **ppLengthSize)
 {
-    ITCAST_UINT8 *pMidData, cSizeOf;
-    ITCAST_UINT32 lMidLength = 0, *pMidLength, *pSizeOf, i;
+    My_UINT8 *pMidData, cSizeOf;
+    My_UINT32 lMidLength = 0, *pMidLength, *pSizeOf, i;
 
     //初始化
     DER_ITASN1_LOW_CREATEUINT32(pSizeOf);
     DER_ITASN1_LOW_CREATEUINT32(pMidLength);
     pMidData = *ppDerData;
     //读长度
-    if (!(*pMidData & ITCAST_DER_FIRST_YES_ID_MASK))//short
+    if (!(*pMidData & My_DER_FIRST_YES_ID_MASK))//short
     {
         cSizeOf = 1;
-        lMidLength = (ITCAST_UINT32)(*(pMidData++) & ITCAST_DER_FIRST_NOT_ID_MASK);
+        lMidLength = (My_UINT32)(*(pMidData++) & My_DER_FIRST_NOT_ID_MASK);
     }
     else                                //long
     {
-        cSizeOf = *(pMidData++) & ITCAST_DER_FIRST_NOT_ID_MASK;
+        cSizeOf = *(pMidData++) & My_DER_FIRST_NOT_ID_MASK;
         if (cSizeOf > 4/* ||cSizeOf <0*/)
         {
             if (pSizeOf) { free(pSizeOf); pSizeOf = NULL; }
@@ -160,10 +160,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetLengthInfo(ITCAST_UINT8 **ppDerData, ITCA
         {
             for (i = 1; i < cSizeOf; i++)
             {
-                lMidLength |= (ITCAST_UINT32)*(pMidData++);
+                lMidLength |= (My_UINT32)*(pMidData++);
                 lMidLength <<= 8;
             }
-            lMidLength |= (ITCAST_UINT32)*(pMidData++);
+            lMidLength |= (My_UINT32)*(pMidData++);
             cSizeOf++;
         }
     }
@@ -181,12 +181,12 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_GetLengthInfo(ITCAST_UINT8 **ppDerData, ITCA
     return 0;
 }
 
-//将一个ITCAST_UINT32类型的整数转换成字符表示形式
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT8 **ppData, ITCAST_UINT32 **ppLength)
+//将一个My_UINT32类型的整数转换成字符表示形式
+My_INT BaseASN1::DER_ItAsn1_Low_IntToChar(My_UINT32 integer, My_UINT8 **ppData, My_UINT32 **ppLength)
 {
-    ITCAST_UINT8 *pMidData = NULL, *pMidSite = NULL;
-    ITCAST_UINT32 *pMidLength = NULL;
-    ITCAST_UINT32  iValue;
+    My_UINT8 *pMidData = NULL, *pMidSite = NULL;
+    My_UINT32 *pMidLength = NULL;
+    My_UINT32  iValue;
 
     //初始化
     iValue = integer;
@@ -209,10 +209,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT
                 DER_ITASN1_LOW_CREATEUINT8(pMidData, 4);
                 pMidSite = pMidData;
             }
-            *(pMidData++) = (ITCAST_UINT8)(iValue >> 24);
-            *(pMidData++) = (ITCAST_UINT8)(iValue >> 16);
-            *(pMidData++) = (ITCAST_UINT8)(iValue >> 8);
-            *(pMidData++) = (ITCAST_UINT8)(iValue);
+            *(pMidData++) = (My_UINT8)(iValue >> 24);
+            *(pMidData++) = (My_UINT8)(iValue >> 16);
+            *(pMidData++) = (My_UINT8)(iValue >> 8);
+            *(pMidData++) = (My_UINT8)(iValue);
             (*pMidLength) += 4;
         }
         else
@@ -230,9 +230,9 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT
                     DER_ITASN1_LOW_CREATEUINT8(pMidData, 3);
                     pMidSite = pMidData;
                 }
-                *(pMidData++) = (ITCAST_UINT8)(iValue >> 16);
-                *(pMidData++) = (ITCAST_UINT8)(iValue >> 8);
-                *(pMidData++) = (ITCAST_UINT8)(iValue);
+                *(pMidData++) = (My_UINT8)(iValue >> 16);
+                *(pMidData++) = (My_UINT8)(iValue >> 8);
+                *(pMidData++) = (My_UINT8)(iValue);
                 (*pMidLength) += 3;
             }
             else
@@ -250,8 +250,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT
                         DER_ITASN1_LOW_CREATEUINT8(pMidData, 2);
                         pMidSite = pMidData;
                     }
-                    *(pMidData++) = (ITCAST_UINT8)(iValue >> 8);
-                    *(pMidData++) = (ITCAST_UINT8)(iValue);
+                    *(pMidData++) = (My_UINT8)(iValue >> 8);
+                    *(pMidData++) = (My_UINT8)(iValue);
                     (*pMidLength) += 2;
                 }
                 else
@@ -272,7 +272,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT
                             DER_ITASN1_LOW_CREATEUINT8(pMidData, 1);
                             pMidSite = pMidData;
                         }
-                        *pMidData = (ITCAST_UINT8)(iValue);
+                        *pMidData = (My_UINT8)(iValue);
                         (*pMidLength) += 1;
                     }
 #if 0
@@ -290,11 +290,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_IntToChar(ITCAST_UINT32 integer, ITCAST_UINT
     return 0;
 }
 
-//将一个用字符表示的整数转换成ITCAST_UINT32型整数
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_CharToInt(ITCAST_UINT8 *aData, ITCAST_UINT32 lLength, ITCAST_UINT32 **ppInteger)
+//将一个用字符表示的整数转换成My_UINT32型整数
+My_INT BaseASN1::DER_ItAsn1_Low_CharToInt(My_UINT8 *aData, My_UINT32 lLength, My_UINT32 **ppInteger)
 {
-    ITCAST_UINT32 lIntMid = 0, i;
-    ITCAST_UINT32 *pIntMid = NULL;
+    My_UINT32 lIntMid = 0, i;
+    My_UINT32 *pIntMid = NULL;
 
     DER_ITASN1_LOW_CREATEUINT32(pIntMid);
     //转换
@@ -320,18 +320,18 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_CharToInt(ITCAST_UINT8 *aData, ITCAST_UINT32
 }
 
 //写Tag和Length值
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(ITCAST_ANYBUF *pAnyIn, ITCAST_UINT8 cTag, ITCAST_ANYBUF **ppAnyOut, ITCAST_UINT8 **ppUint8Value)
+My_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(My_ANYBUF *pAnyIn, My_UINT8 cTag, My_ANYBUF **ppAnyOut, My_UINT8 **ppUint8Value)
 {
-    ITCAST_ANYBUF *pMidAny = NULL;
-    ITCAST_UINT8 *pMidValue = NULL, cIdentifier;
-    ITCAST_UINT32 iMidSize, iMidSizeOf, iMidLength, i;
+    My_ANYBUF *pMidAny = NULL;
+    My_UINT8 *pMidValue = NULL, cIdentifier;
+    My_UINT32 iMidSize, iMidSizeOf, iMidLength, i;
 
     //计算长度,Bitstring和Integer类型与其他类型分开处理
-    if ((cTag != ITCAST_DER_ID_BITSTRING) && (cTag != ITCAST_DER_ID_INTEGER))
+    if ((cTag != My_DER_ID_BITSTRING) && (cTag != My_DER_ID_INTEGER))
         iMidSize = pAnyIn->dataLen;
     else
-        if (cTag == ITCAST_DER_ID_INTEGER)
-            if (!(*(pAnyIn->pData) & ITCAST_DER_FIRST_YES_ID_MASK))
+        if (cTag == My_DER_ID_INTEGER)
+            if (!(*(pAnyIn->pData) & My_DER_FIRST_YES_ID_MASK))
                 iMidSize = pAnyIn->dataLen;
             else
                 iMidSize = pAnyIn->dataLen + 1;
@@ -345,7 +345,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(ITCAST_ANYBUF *pAnyIn, ITC
         return LengthErr;
     }
     iMidSize += 1 + iMidSizeOf;
-    DER_CREATE_LOW_ITCAST_ANYBUF(pMidAny);
+    DER_CREATE_LOW_My_ANYBUF(pMidAny);
     DER_ITASN1_LOW_CREATEUINT8(pMidValue, iMidSize);
     if (iMidSize == 11)
     {
@@ -353,7 +353,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(ITCAST_ANYBUF *pAnyIn, ITC
     }
     pMidAny->pData = pMidValue;
     //检测Tag值
-    if (cTag & ITCAST_DER_CONTEXT_SPECIFIC)
+    if (cTag & My_DER_CONTEXT_SPECIFIC)
         cIdentifier = cTag;
     else
     {
@@ -363,28 +363,28 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(ITCAST_ANYBUF *pAnyIn, ITC
     }
 
     *(pMidValue++) = cTag;
-    pMidAny->dataType = (ITCAST_UINT32)cIdentifier;
+    pMidAny->dataType = (My_UINT32)cIdentifier;
     pMidAny->dataLen = iMidSize;
     if (iMidSizeOf == 1)
     {
-        *(pMidValue++) = (ITCAST_UINT8)(iMidLength);
+        *(pMidValue++) = (My_UINT8)(iMidLength);
     }
     else
     {
-        *(pMidValue++) = ITCAST_DER_FIRST_YES_ID_MASK | (ITCAST_UINT8)(iMidSizeOf - 1);
+        *(pMidValue++) = My_DER_FIRST_YES_ID_MASK | (My_UINT8)(iMidSizeOf - 1);
         for (i = iMidSizeOf - 1; i > 0; i--)
         {
-            *(pMidValue++) = (ITCAST_UINT8)(iMidLength >> 8 * (i - 1));
+            *(pMidValue++) = (My_UINT8)(iMidLength >> 8 * (i - 1));
         }
     }
-    if (pMidAny->dataType == ITCAST_DER_ID_BITSTRING)
+    if (pMidAny->dataType == My_DER_ID_BITSTRING)
     {
         pMidAny->unusedBits = pAnyIn->unusedBits;
-        *(pMidValue++) = (ITCAST_UINT8)(pAnyIn->unusedBits);
+        *(pMidValue++) = (My_UINT8)(pAnyIn->unusedBits);
     }
-    if (pMidAny->dataType == ITCAST_DER_ID_INTEGER)
+    if (pMidAny->dataType == My_DER_ID_INTEGER)
     {
-        if (*(pAnyIn->pData) & ITCAST_DER_FIRST_YES_ID_MASK)
+        if (*(pAnyIn->pData) & My_DER_FIRST_YES_ID_MASK)
             *(pMidValue++) = 0x0;
     }
     //输出信息
@@ -398,17 +398,17 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_WriteTagAndLength(ITCAST_ANYBUF *pAnyIn, ITC
 }
 
 //读Tag和Length值
-ITCAST_INT BaseASN1::DER_ItAsn1_Low_ReadTagAndLength(ITCAST_ANYBUF *pAnyIn, ITCAST_UINT8 **ppUint8Data, ITCAST_ANYBUF **ppAnyOut, ITCAST_UINT8 **ppUint8Value)
+My_INT BaseASN1::DER_ItAsn1_Low_ReadTagAndLength(My_ANYBUF *pAnyIn, My_UINT8 **ppUint8Data, My_ANYBUF **ppAnyOut, My_UINT8 **ppUint8Value)
 {
-    ITCAST_ANYBUF *pMidAny = NULL;
-    ITCAST_UINT32 *pMidTag = NULL;
-    ITCAST_UINT8 *pMidValue = NULL;
-    ITCAST_UINT32 *pMidSize = NULL, *pMidSizeOf = NULL, iMidLength = 0;
+    My_ANYBUF *pMidAny = NULL;
+    My_UINT32 *pMidTag = NULL;
+    My_UINT8 *pMidValue = NULL;
+    My_UINT32 *pMidSize = NULL, *pMidSizeOf = NULL, iMidLength = 0;
 
-    DER_CREATE_LOW_ITCAST_ANYBUF(pMidAny);
+    DER_CREATE_LOW_My_ANYBUF(pMidAny);
     DER_ItAsn1_Low_GetTagInfo(ppUint8Data, &pMidTag, &pMidSize);
     //检测Tag值是否正确
-    if (!(*pMidTag == ITCAST_DER_ID_STRING_PRINTABLE) || (*pMidTag == ITCAST_DER_ID_STRING_BMP))
+    if (!(*pMidTag == My_DER_ID_STRING_PRINTABLE) || (*pMidTag == My_DER_ID_STRING_BMP))
     {
         /***************************************
             *****  if (*pMidTag != pAnyIn ->dataType)
@@ -417,51 +417,51 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_ReadTagAndLength(ITCAST_ANYBUF *pAnyIn, ITCA
     }
     pMidAny->dataType = *pMidTag;
     iMidLength += *pMidSize;
-    DER_ITCAST_Free(pMidSize);
+    DER_My_Free(pMidSize);
     DER_ItAsn1_Low_GetLengthInfo(ppUint8Data, &pMidSize, &pMidSizeOf);
     //检测总长度是否正确
     iMidLength += *pMidSize + *pMidSizeOf;
     if (iMidLength != pAnyIn->dataLen)
     {
-        DER_ITCAST_Free(pMidSize);
-        DER_ITCAST_Free(pMidSizeOf);
-        DER_ITCAST_Free(pMidTag);
-        DER_ITCAST_Free(pMidAny);
+        DER_My_Free(pMidSize);
+        DER_My_Free(pMidSizeOf);
+        DER_My_Free(pMidTag);
+        DER_My_Free(pMidAny);
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, LengthNotEqual, "func DER_ItAsn1_Low_ReadTagAndLength() err");
         return LengthNotEqual;
 
     }
 
     //Bitstring和Integer类型与其他类型不同
-    if (pAnyIn->dataType == ITCAST_DER_ID_BITSTRING)
+    if (pAnyIn->dataType == My_DER_ID_BITSTRING)
     {
         pMidAny->unusedBits = pAnyIn->unusedBits;
         //检测unusedBits值是否正确
-        //if ((ITCAST_UINT8)(pMidAny ->unusedBits) != **ppUint8Data)
+        //if ((My_UINT8)(pMidAny ->unusedBits) != **ppUint8Data)
         //	return MemoryErr;
         (*ppUint8Data)++;
         (*pMidSize)--;
     }
-    if (*pMidTag == ITCAST_DER_ID_INTEGER)
+    if (*pMidTag == My_DER_ID_INTEGER)
     {
         pMidValue = *ppUint8Data;
-        if ((*pMidValue == 0x0) && (*(++pMidValue) & ITCAST_DER_FIRST_YES_ID_MASK))
+        if ((*pMidValue == 0x0) && (*(++pMidValue) & My_DER_FIRST_YES_ID_MASK))
         {
             (*ppUint8Data)++;
             (*pMidSize)--;
         }
         pMidValue = NULL;
     }
-    DER_ITCAST_Free(pMidTag);
+    DER_My_Free(pMidTag);
     //创建pMidAny的pData空间
     if (*pMidSize > 0)
     {
         DER_ITASN1_LOW_CREATEUINT8(pMidValue, *pMidSize);
         if (pMidValue == NULL)
         {
-            DER_ITCAST_Free(pMidSize);
-            DER_ITCAST_Free(pMidSizeOf);
-            DER_ITCAST_Free(pMidAny);
+            DER_My_Free(pMidSize);
+            DER_My_Free(pMidSizeOf);
+            DER_My_Free(pMidAny);
             return MemoryErr;
         }
     }
@@ -475,8 +475,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_ReadTagAndLength(ITCAST_ANYBUF *pAnyIn, ITCA
     pMidAny->dataLen = *pMidSize;
     pMidAny->pData = *ppUint8Value;
     *ppAnyOut = pMidAny;
-    DER_ITCAST_Free(pMidSize);
-    DER_ITCAST_Free(pMidSizeOf);
+    DER_My_Free(pMidSize);
+    DER_My_Free(pMidSizeOf);
 
     //中间变量赋空
     pMidAny = NULL;
@@ -486,12 +486,12 @@ ITCAST_INT BaseASN1::DER_ItAsn1_Low_ReadTagAndLength(ITCAST_ANYBUF *pAnyIn, ITCA
 }
 
 //DER编码整数数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteInteger(ITCAST_UINT32 integer, ITASN1_INTEGER **ppDerInteger)
+My_INT BaseASN1::DER_ItAsn1_WriteInteger(My_UINT32 integer, ITASN1_INTEGER **ppDerInteger)
 {
-    ITCAST_UINT8 *pData, *pMidSite;
-    ITCAST_UINT32 *pLength;
+    My_UINT8 *pData, *pMidSite;
+    My_UINT32 *pLength;
     ITASN1_INTEGER *pInteger = NULL;
-    ITCAST_UINT8 *pMidUint8 = NULL, cTag = ITCAST_DER_INTEGER;
+    My_UINT8 *pMidUint8 = NULL, cTag = My_DER_INTEGER;
     int iResult;
 
     //编码pData域
@@ -504,10 +504,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteInteger(ITCAST_UINT32 integer, ITASN1_INTEG
     DER_ITASN1_LOW_CREATEUINT8(pMidUint8, *pLength + 2);
     pMidSite = pMidUint8;
     *(pMidUint8++) = cTag;
-    *(pMidUint8++) = (ITCAST_UINT8)*pLength;
+    *(pMidUint8++) = (My_UINT8)*pLength;
     memcpy(pMidUint8, pData, *pLength);
     //形成ITASN1_INTEGER结构
-    DER_CREATE_LOW_ITCAST_ANYBUF(pInteger);
+    DER_CREATE_LOW_My_ANYBUF(pInteger);
     DER_ITASN1_LOW_CHECKERR(iResult, MemoryErr);
     pInteger->pData = pMidSite;
     pInteger->unusedBits = 0;
@@ -518,8 +518,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteInteger(ITCAST_UINT32 integer, ITASN1_INTEG
     pInteger->prev = NULL;
     //输出
     *ppDerInteger = pInteger;
-    DER_ITCAST_Free(pData);
-    DER_ITCAST_Free(pLength);
+    DER_My_Free(pData);
+    DER_My_Free(pLength);
     //中间变量赋空
     pMidSite = NULL;
     pInteger = NULL;
@@ -529,11 +529,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteInteger(ITCAST_UINT32 integer, ITASN1_INTEG
 }
 
 //DER解码整数数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, ITCAST_UINT32 *pInteger)
+My_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, My_UINT32 *pInteger)
 {
-    ITCAST_UINT8 *pMidData = NULL;
-    ITCAST_UINT32 *pTag = NULL;
-    ITCAST_UINT32 lMidLength, *pMidSize = NULL, *pMidSizeOf = NULL;
+    My_UINT8 *pMidData = NULL;
+    My_UINT32 *pTag = NULL;
+    My_UINT32 lMidLength, *pMidSize = NULL, *pMidSizeOf = NULL;
     int iResult;
     //解码
     pMidData = pDerInteger->pData;
@@ -543,8 +543,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, ITCAST_
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, iResult, "func DER_ItAsn1_ReadInteger() err check iResult != NoErr");
         return  iResult;
     }
-    DER_ITCAST_Free(pTag);
-    DER_ITCAST_Free(pMidSize);
+    DER_My_Free(pTag);
+    DER_My_Free(pMidSize);
     iResult = DER_ItAsn1_Low_GetLengthInfo(&pMidData, &pMidSize, &pMidSizeOf);
     if (iResult != NoErr)
     {
@@ -552,8 +552,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, ITCAST_
         return  iResult;
     }
     lMidLength = *pMidSize;
-    DER_ITCAST_Free(pMidSize);
-    DER_ITCAST_Free(pMidSizeOf);
+    DER_My_Free(pMidSize);
+    DER_My_Free(pMidSizeOf);
     iResult = DER_ItAsn1_Low_CharToInt(pMidData, lMidLength, &pMidSize);
     if (iResult != NoErr)
     {
@@ -562,7 +562,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, ITCAST_
     }
     //输出
     *pInteger = *pMidSize;
-    DER_ITCAST_Free(pMidSize);
+    DER_My_Free(pMidSize);
     //中间变量赋空
     pMidData = NULL;
 
@@ -570,11 +570,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadInteger(ITASN1_INTEGER *pDerInteger, ITCAST_
 }
 
 //DER编码BitString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteBitString(ITASN1_BITSTRING *pBitString, ITASN1_BITSTRING **ppDerBitString)
+My_INT BaseASN1::DER_ItAsn1_WriteBitString(ITASN1_BITSTRING *pBitString, ITASN1_BITSTRING **ppDerBitString)
 {
     ITASN1_BITSTRING *pMidBitString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
-    ITCAST_UINT8 cTag = ITCAST_DER_BITSTRING;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_UINT8 cTag = My_DER_BITSTRING;
     int iResult;
 
     //编码
@@ -598,10 +598,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteBitString(ITASN1_BITSTRING *pBitString, ITA
 }
 
 //DER解码BitString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadBitString(ITASN1_BITSTRING *pDerBitString, ITASN1_BITSTRING **ppBitString)
+My_INT BaseASN1::DER_ItAsn1_ReadBitString(ITASN1_BITSTRING *pDerBitString, ITASN1_BITSTRING **ppBitString)
 {
     ITASN1_BITSTRING *pMidBitString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
     int iResult;
 
     //解码
@@ -624,11 +624,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadBitString(ITASN1_BITSTRING *pDerBitString, I
 }
 
 //DER编码CharString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteCharString(ITCAST_ANYBUF *pCharString, ITCAST_ANYBUF **ppDerCharString)
+My_INT BaseASN1::DER_ItAsn1_WriteCharString(My_ANYBUF *pCharString, My_ANYBUF **ppDerCharString)
 {
-    ITCAST_ANYBUF *pMidCharString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
-    ITCAST_UINT8 cTag = ITCAST_DER_ID_STRING_PRINTABLE;
+    My_ANYBUF *pMidCharString = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_UINT8 cTag = My_DER_ID_STRING_PRINTABLE;
     int iResult;
 
     //编码
@@ -652,10 +652,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteCharString(ITCAST_ANYBUF *pCharString, ITCA
 }
 
 //DER解码PrintableString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadCharString(ITCAST_ANYBUF *pDerCharString, ITCAST_ANYBUF **ppCharString)
+My_INT BaseASN1::DER_ItAsn1_ReadCharString(My_ANYBUF *pDerCharString, My_ANYBUF **ppCharString)
 {
-    ITCAST_ANYBUF *pMidCharString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_ANYBUF *pMidCharString = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
     int iResult;
 
     //解码
@@ -679,11 +679,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadCharString(ITCAST_ANYBUF *pDerCharString, IT
 }
 
 //DER编码BmpString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteBmpString(ITASN1_BMPSTRING *pBmpString, ITASN1_BMPSTRING **ppDerBmpString)
+My_INT BaseASN1::DER_ItAsn1_WriteBmpString(ITASN1_BMPSTRING *pBmpString, ITASN1_BMPSTRING **ppDerBmpString)
 {
-    ITCAST_ANYBUF *pMidBmpString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
-    ITCAST_UINT8 cTag = ITCAST_DER_ID_STRING_BMP;
+    My_ANYBUF *pMidBmpString = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_UINT8 cTag = My_DER_ID_STRING_BMP;
     int iResult;
 
     //编码
@@ -707,10 +707,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteBmpString(ITASN1_BMPSTRING *pBmpString, ITA
 }
 
 //DER解码BmpString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadBmpString(ITASN1_BMPSTRING *pDerBmpString, ITASN1_BMPSTRING **ppBmpString)
+My_INT BaseASN1::DER_ItAsn1_ReadBmpString(ITASN1_BMPSTRING *pDerBmpString, ITASN1_BMPSTRING **ppBmpString)
 {
-    ITCAST_ANYBUF *pMidBmpString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_ANYBUF *pMidBmpString = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
     int iResult;
 
     //解码
@@ -734,11 +734,11 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadBmpString(ITASN1_BMPSTRING *pDerBmpString, I
 }
 
 //DER编码PrintableString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WritePrintableString(ITASN1_PRINTABLESTRING *pPrintString, ITASN1_PRINTABLESTRING **ppDerPrintString)
+My_INT BaseASN1::DER_ItAsn1_WritePrintableString(ITASN1_PRINTABLESTRING *pPrintString, ITASN1_PRINTABLESTRING **ppDerPrintString)
 {
     int iResult;
 
-    if (pPrintString->dataType == ITCAST_DER_STRING_BMP)
+    if (pPrintString->dataType == My_DER_STRING_BMP)
     {
         iResult = DER_ItAsn1_WriteBmpString(pPrintString, ppDerPrintString);
         if (iResult != NoErr)
@@ -762,10 +762,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WritePrintableString(ITASN1_PRINTABLESTRING *pPr
 }
 
 //DER解码PrintableString类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadPrintableString(ITASN1_PRINTABLESTRING *pDerPrintString, ITASN1_PRINTABLESTRING **ppPrintString)
+My_INT BaseASN1::DER_ItAsn1_ReadPrintableString(ITASN1_PRINTABLESTRING *pDerPrintString, ITASN1_PRINTABLESTRING **ppPrintString)
 {
     ITASN1_PRINTABLESTRING *pMidPrintString = NULL;
-    ITCAST_UINT8 *pMidData = NULL, *pMidValue = NULL;
+    My_UINT8 *pMidData = NULL, *pMidValue = NULL;
     int iResult;
 
     //解码
@@ -788,12 +788,12 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadPrintableString(ITASN1_PRINTABLESTRING *pDer
 }
 
 //DER编码Sequence类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteSequence(ITASN1_SEQUENCE *pSequence, ITCAST_ANYBUF **ppDerSequence)
+My_INT BaseASN1::DER_ItAsn1_WriteSequence(ITASN1_SEQUENCE *pSequence, My_ANYBUF **ppDerSequence)
 {
     ITASN1_SEQUENCE *pMidSequence = NULL, *pMidNext1 = NULL;
-    ITCAST_UINT8 *pMidValue = NULL, *pMidSite;
-    ITCAST_UINT32 lSizeOf = 0, i, lMidLength = 0;
-    ITCAST_UINT8 cTag = ITCAST_DER_SEQUENCE;
+    My_UINT8 *pMidValue = NULL, *pMidSite;
+    My_UINT32 lSizeOf = 0, i, lMidLength = 0;
+    My_UINT8 cTag = My_DER_SEQUENCE;
 
 
     //计算Sequence数据长度
@@ -811,12 +811,12 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteSequence(ITASN1_SEQUENCE *pSequence, ITCAST
     *(pMidValue++) = cTag;
     //写长度
     if (lSizeOf == 1)
-        *(pMidValue++) = (ITCAST_UINT8)lMidLength;
+        *(pMidValue++) = (My_UINT8)lMidLength;
     else
     {
-        *(pMidValue++) = ITCAST_DER_FIRST_YES_ID_MASK | ((ITCAST_UINT8)(lSizeOf - 1));
+        *(pMidValue++) = My_DER_FIRST_YES_ID_MASK | ((My_UINT8)(lSizeOf - 1));
         for (i = lSizeOf - 1; i > 0; i--)
-            *(pMidValue++) = (ITCAST_UINT8)(lMidLength >> 8 * (i - 1));
+            *(pMidValue++) = (My_UINT8)(lMidLength >> 8 * (i - 1));
     }
     pMidNext1 = pSequence;
     //copy数据
@@ -827,8 +827,8 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteSequence(ITASN1_SEQUENCE *pSequence, ITCAST
         pMidValue += pMidNext1->dataLen;
         pMidNext1 = pMidNext1->next;
     }
-    //创建ITCAST_ANYBUF结构
-    DER_CREATE_LOW_ITCAST_ANYBUF(pMidSequence);
+    //创建My_ANYBUF结构
+    DER_CREATE_LOW_My_ANYBUF(pMidSequence);
     pMidSequence->dataLen = lMidLength + 1 + lSizeOf;
     pMidSequence->pData = pMidSite;
     pMidSequence->dataType = DER_ITASN1_LOW_IDENTIFIER(cTag);
@@ -843,9 +843,9 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteSequence(ITASN1_SEQUENCE *pSequence, ITCAST
     return 0;
 }
 
-void BaseASN1::DER_DI_FreeAnybuf(ITCAST_ANYBUF  * pAnyBuf)
+void BaseASN1::DER_DI_FreeAnybuf(My_ANYBUF  * pAnyBuf)
 {
-    ITCAST_ANYBUF * pTmp;
+    My_ANYBUF * pTmp;
     pTmp = pAnyBuf;
     if (pAnyBuf == NULL)
     {
@@ -856,29 +856,29 @@ void BaseASN1::DER_DI_FreeAnybuf(ITCAST_ANYBUF  * pAnyBuf)
         pTmp = pAnyBuf->next;
         if (pAnyBuf->pData)
         {
-            DER_ITCAST_Free(pAnyBuf->pData);
+            DER_My_Free(pAnyBuf->pData);
         }
-        DER_ITCAST_Free(pAnyBuf);
+        DER_My_Free(pAnyBuf);
         pAnyBuf = pTmp;
     }
     if (pAnyBuf->pData)
     {
-        DER_ITCAST_Free(pAnyBuf->pData);
+        DER_My_Free(pAnyBuf->pData);
     }
-    DER_ITCAST_Free(pAnyBuf);
+    DER_My_Free(pAnyBuf);
     return;
 }
 
 //DER解码Sequence类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1_SEQUENCE **ppSequence)
+My_INT BaseASN1::DER_ItAsn1_ReadSequence(My_ANYBUF *pDerSequence, ITASN1_SEQUENCE **ppSequence)
 {
     ITASN1_SEQUENCE *pMidNext1 = NULL, *pMidNext2 = NULL, *pMidSequence = NULL;
-    ITCAST_UINT8   *pMidData = NULL, *pMidItemData = NULL, *pMidValue = NULL;
-    ITCAST_UINT32  lMidLength = 0, *pTagValue = NULL, *pLengthValue = NULL;
-    ITCAST_UINT32  *pTagSize = NULL, *pLengthSize = NULL;
+    My_UINT8   *pMidData = NULL, *pMidItemData = NULL, *pMidValue = NULL;
+    My_UINT32  lMidLength = 0, *pTagValue = NULL, *pLengthValue = NULL;
+    My_UINT32  *pTagSize = NULL, *pLengthSize = NULL;
     int        lTotalLength = 0;
     int iResult;
-    ITCAST_UINT8 firstTag = TRUE;
+    My_UINT8 firstTag = TRUE;
     int i = 0;
 
     //初始化
@@ -891,37 +891,37 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
         return  iResult;
     }
 
-    if ((ITCAST_UINT8)*pTagValue != ITCAST_DER_ID_SEQUENCE)
+    if ((My_UINT8)*pTagValue != My_DER_ID_SEQUENCE)
     {
-        DER_ITCAST_Free(pTagValue);
-        DER_ITCAST_Free(pTagSize);
-        m_log.Log(__FILE__, __LINE__, MyLog::ERROR, InvalidTag, "check pTagValue != ITCAST_DER_ID_SEQUENCE err");
+        DER_My_Free(pTagValue);
+        DER_My_Free(pTagSize);
+        m_log.Log(__FILE__, __LINE__, MyLog::ERROR, InvalidTag, "check pTagValue != My_DER_ID_SEQUENCE err");
         return InvalidTag;
     }
     //检测长度值
     iResult = DER_ItAsn1_Low_GetLengthInfo(&pMidData, &pLengthValue, &pLengthSize);
     if (iResult != NoErr)
     {
-        DER_ITCAST_Free(pTagValue);
-        DER_ITCAST_Free(pTagSize);
+        DER_My_Free(pTagValue);
+        DER_My_Free(pTagSize);
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, iResult, "fun DER_ItAsn1_Low_GetLengthInfo() err");
         return iResult;
     }
 
     if (pDerSequence->dataLen != *pTagSize + *pLengthSize + *pLengthValue)
     {
-        DER_ITCAST_Free(pLengthValue);
-        DER_ITCAST_Free(pLengthSize);
-        DER_ITCAST_Free(pTagValue);
-        DER_ITCAST_Free(pTagSize);
+        DER_My_Free(pLengthValue);
+        DER_My_Free(pLengthSize);
+        DER_My_Free(pTagValue);
+        DER_My_Free(pTagSize);
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, LengthNotEqual, "fun check length  err");
         return LengthNotEqual;
     }
     lTotalLength = *pLengthValue;
-    DER_ITCAST_Free(pTagValue);
-    DER_ITCAST_Free(pTagSize);
-    DER_ITCAST_Free(pLengthValue);
-    DER_ITCAST_Free(pLengthSize);
+    DER_My_Free(pTagValue);
+    DER_My_Free(pTagSize);
+    DER_My_Free(pLengthValue);
+    DER_My_Free(pLengthSize);
     //创建Sequence链,头及其余元素
     while (lTotalLength > 0)
     {
@@ -929,18 +929,18 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
         iResult = DER_ItAsn1_Low_GetTagInfo(&pMidItemData, &pTagValue, &pTagSize);
         if (iResult != NoErr)
         {
-            DER_ITCAST_Free(pTagValue);
-            DER_ITCAST_Free(pTagSize);
+            DER_My_Free(pTagValue);
+            DER_My_Free(pTagSize);
             m_log.Log(__FILE__, __LINE__, MyLog::ERROR, iResult, "fun DER_ItAsn1_Low_GetTagInfo() err");
             return iResult;
         }
         iResult = DER_ItAsn1_Low_GetLengthInfo(&pMidItemData, &pLengthValue, &pLengthSize);
         if (iResult != NoErr)
         {
-            DER_ITCAST_Free(pLengthValue);
-            DER_ITCAST_Free(pLengthSize);
-            DER_ITCAST_Free(pTagValue);
-            DER_ITCAST_Free(pTagSize);
+            DER_My_Free(pLengthValue);
+            DER_My_Free(pLengthSize);
+            DER_My_Free(pTagValue);
+            DER_My_Free(pTagSize);
             m_log.Log(__FILE__, __LINE__, MyLog::ERROR, iResult, "fun DER_ItAsn1_Low_GetLengthInfo() err");
             return iResult;
         }
@@ -950,10 +950,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
 
         if (pMidValue == NULL)
         {
-            DER_ITCAST_Free(pLengthValue);
-            DER_ITCAST_Free(pLengthSize);
-            DER_ITCAST_Free(pTagValue);
-            DER_ITCAST_Free(pTagSize);
+            DER_My_Free(pLengthValue);
+            DER_My_Free(pLengthSize);
+            DER_My_Free(pTagValue);
+            DER_My_Free(pTagSize);
             m_log.Log(__FILE__, __LINE__, MyLog::ERROR, MemoryErr, "pMidValue is null err");
             return MemoryErr;
         }
@@ -963,7 +963,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
         if (firstTag)
         {
             firstTag = FALSE;
-            DER_CREATE_LOW_ITCAST_ANYBUF(pMidSequence);
+            DER_CREATE_LOW_My_ANYBUF(pMidSequence);
             pMidSequence->pData = pMidValue;
             pMidSequence->dataType = *pTagValue;
             pMidSequence->dataLen = lMidLength;
@@ -973,7 +973,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
         }
         else
         {
-            DER_CREATE_LOW_ITCAST_ANYBUF(pMidNext1);
+            DER_CREATE_LOW_My_ANYBUF(pMidNext1);
             pMidNext1->pData = pMidValue;
             pMidNext1->dataType = *pTagValue;
             pMidNext1->dataLen = lMidLength;
@@ -985,10 +985,10 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
         }
         pMidData += lMidLength;
         lTotalLength -= lMidLength;
-        DER_ITCAST_Free(pTagValue);
-        DER_ITCAST_Free(pTagSize);
-        DER_ITCAST_Free(pLengthValue);
-        DER_ITCAST_Free(pLengthSize);
+        DER_My_Free(pTagValue);
+        DER_My_Free(pTagSize);
+        DER_My_Free(pLengthValue);
+        DER_My_Free(pLengthSize);
         i++;
     }
     if (lTotalLength != 0)
@@ -1011,18 +1011,18 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadSequence(ITCAST_ANYBUF *pDerSequence, ITASN1
 }
 
 //DER编码Null类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_WriteNull(ITCAST_ANYBUF **ppDerNull)
+My_INT BaseASN1::DER_ItAsn1_WriteNull(My_ANYBUF **ppDerNull)
 {
-    ITCAST_ANYBUF *pMidNull = NULL;
-    ITCAST_UINT8 *pMidValue = NULL, *pMidSite, cTag = ITCAST_DER_NULL;
+    My_ANYBUF *pMidNull = NULL;
+    My_UINT8 *pMidValue = NULL, *pMidSite, cTag = My_DER_NULL;
 
     //编码
     DER_ITASN1_LOW_CREATEUINT8(pMidValue, 2);
     pMidSite = pMidValue;
     *(pMidValue++) = cTag;
     *pMidValue = 0x0;
-    //创建ITCAST_ANYBUF类型结构
-    DER_CREATE_LOW_ITCAST_ANYBUF(pMidNull);
+    //创建My_ANYBUF类型结构
+    DER_CREATE_LOW_My_ANYBUF(pMidNull);
     pMidNull->pData = pMidSite;
     pMidNull->dataLen = 2;
     pMidNull->dataType = DER_ITASN1_LOW_IDENTIFIER(cTag);
@@ -1037,7 +1037,7 @@ ITCAST_INT BaseASN1::DER_ItAsn1_WriteNull(ITCAST_ANYBUF **ppDerNull)
 }
 
 //DER解码Null类型数据
-ITCAST_INT BaseASN1::DER_ItAsn1_ReadNull(ITCAST_ANYBUF *pDerNull, ITCAST_UINT8 *pInt)
+My_INT BaseASN1::DER_ItAsn1_ReadNull(My_ANYBUF *pDerNull, My_UINT8 *pInt)
 {
     unsigned char  temp[2];
     unsigned char  derNULL[2];
@@ -1057,9 +1057,9 @@ ITCAST_INT BaseASN1::DER_ItAsn1_ReadNull(ITCAST_ANYBUF *pDerNull, ITCAST_UINT8 *
     return 0;
 }
 
-ITCAST_INT BaseASN1::DER_ITCAST_FreeQueue(ITCAST_ANYBUF *pAnyBuf)
+My_INT BaseASN1::DER_My_FreeQueue(My_ANYBUF *pAnyBuf)
 {
-    ITCAST_ANYBUF * pTmp;
+    My_ANYBUF * pTmp;
     pTmp = pAnyBuf;
     if (pAnyBuf == NULL)
     {
@@ -1070,30 +1070,30 @@ ITCAST_INT BaseASN1::DER_ITCAST_FreeQueue(ITCAST_ANYBUF *pAnyBuf)
         pTmp = pAnyBuf->next;
         if (pAnyBuf->pData)
         {
-            DER_ITCAST_Free(pAnyBuf->pData);
+            DER_My_Free(pAnyBuf->pData);
         }
-        DER_ITCAST_Free(pAnyBuf);
+        DER_My_Free(pAnyBuf);
         pAnyBuf = pTmp;
     }
     if (pAnyBuf->pData)
     {
-        DER_ITCAST_Free(pAnyBuf->pData);
+        DER_My_Free(pAnyBuf->pData);
     }
-    DER_ITCAST_Free(pAnyBuf);
+    DER_My_Free(pAnyBuf);
     return NoErr;
 }
 
-ITCAST_INT BaseASN1::DER_ITCAST_String_To_AnyBuf(ITCAST_ANYBUF **pOriginBuf, unsigned char *strOrigin, int strOriginLen)
+My_INT BaseASN1::DER_My_String_To_AnyBuf(My_ANYBUF **pOriginBuf, unsigned char *strOrigin, int strOriginLen)
 {
-    ITCAST_ANYBUF *pValueBuf;
+    My_ANYBUF *pValueBuf;
 
-    pValueBuf = (ITCAST_ANYBUF*)malloc(sizeof(ITCAST_ANYBUF));
+    pValueBuf = (My_ANYBUF*)malloc(sizeof(My_ANYBUF));
     if (pValueBuf == NULL)
     {
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, MemoryErr, "malloc err");
         return MemoryErr;
     }
-    memset(pValueBuf, 0, sizeof(ITCAST_ANYBUF));
+    memset(pValueBuf, 0, sizeof(My_ANYBUF));
 
     if (strOriginLen <= 0)
     {
@@ -1105,14 +1105,14 @@ ITCAST_INT BaseASN1::DER_ITCAST_String_To_AnyBuf(ITCAST_ANYBUF **pOriginBuf, uns
         pValueBuf->pData = (unsigned char *)malloc(strOriginLen);
         if (pValueBuf->pData == NULL)
         {
-            DER_ITCAST_Free(pValueBuf);
+            DER_My_Free(pValueBuf);
             m_log.Log(__FILE__, __LINE__, MyLog::ERROR, LengthErr, "malloc err");
             return MemoryErr;
         }
         memcpy(pValueBuf->pData, strOrigin, strOriginLen);
     }
     pValueBuf->dataLen = strOriginLen;
-    pValueBuf->dataType = ITCAST_DER_ID_STRING_PRINTABLE;
+    pValueBuf->dataType = My_DER_ID_STRING_PRINTABLE;
     pValueBuf->next = NULL;
     pValueBuf->prev = NULL;
     pValueBuf->unusedBits = (strOriginLen % 8);
@@ -1123,15 +1123,15 @@ ITCAST_INT BaseASN1::DER_ITCAST_String_To_AnyBuf(ITCAST_ANYBUF **pOriginBuf, uns
 
 #define  DER_INPUTDATA_ERR 106
 //对空指针进行编码
-int BaseASN1::WriteNullSequence(ITCAST_ANYBUF **pOutData)
+int BaseASN1::WriteNullSequence(My_ANYBUF **pOutData)
 {
     int				rv = 0;
-    ITCAST_ANYBUF		*pTmp = NULL, *pHead = NULL;
+    My_ANYBUF		*pTmp = NULL, *pHead = NULL;
 
     rv = DER_ItAsn1_WriteNull(&pTmp);
     if (rv != 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, rv, "func DER_ItAsn1_WriteNull() err");
         return rv;
     }
@@ -1139,12 +1139,12 @@ int BaseASN1::WriteNullSequence(ITCAST_ANYBUF **pOutData)
     rv = DER_ItAsn1_WriteSequence(pTmp, &pHead);
     if (rv != 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
-        DER_ITCAST_FreeQueue(pHead);
+        DER_My_FreeQueue(pTmp);
+        DER_My_FreeQueue(pHead);
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, rv, "func DER_ItAsn1_WriteSequence() err");
         return rv;
     }
-    DER_ITCAST_FreeQueue(pTmp);
+    DER_My_FreeQueue(pTmp);
     if (pHead == NULL)
     {
         m_log.Log(__FILE__, __LINE__, MyLog::ERROR, -1, " check (pHead == NULL) err");
@@ -1154,9 +1154,9 @@ int BaseASN1::WriteNullSequence(ITCAST_ANYBUF **pOutData)
     return 0;
 }
 
-int BaseASN1::EncodeUnsignedChar(unsigned char *pData, int dataLen, ITCAST_ANYBUF **outBuf)
+int BaseASN1::EncodeUnsignedChar(unsigned char *pData, int dataLen, My_ANYBUF **outBuf)
 {
-    ITCAST_ANYBUF	*pHeadBuf = NULL, *pTmp = NULL;
+    My_ANYBUF	*pHeadBuf = NULL, *pTmp = NULL;
     int			rv;
 
     //输入值不合法
@@ -1172,10 +1172,10 @@ int BaseASN1::EncodeUnsignedChar(unsigned char *pData, int dataLen, ITCAST_ANYBU
     }
     else if (pData == NULL && dataLen == 0)
     {
-        rv = DER_ITCAST_String_To_AnyBuf(&pTmp, NULL, 0);
+        rv = DER_My_String_To_AnyBuf(&pTmp, NULL, 0);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
 
             return rv;
@@ -1184,8 +1184,8 @@ int BaseASN1::EncodeUnsignedChar(unsigned char *pData, int dataLen, ITCAST_ANYBU
         rv = DER_ItAsn1_WriteBitString(pTmp, &pHeadBuf);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
-            DER_ITCAST_FreeQueue(pHeadBuf);
+            DER_My_FreeQueue(pTmp);
+            DER_My_FreeQueue(pHeadBuf);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
             return rv;
         }
@@ -1193,46 +1193,46 @@ int BaseASN1::EncodeUnsignedChar(unsigned char *pData, int dataLen, ITCAST_ANYBU
     }
     else
     {
-        rv = DER_ITCAST_String_To_AnyBuf(&pTmp, pData, dataLen);
+        rv = DER_My_String_To_AnyBuf(&pTmp, pData, dataLen);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
             return -1;
         }
         rv = DER_ItAsn1_WriteBitString(pTmp, &pHeadBuf);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pHeadBuf);
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pHeadBuf);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
 
             return -1;
         }
     }
-    DER_ITCAST_FreeQueue(pTmp);
+    DER_My_FreeQueue(pTmp);
 
     *outBuf = pHeadBuf;
 
     return 0;
 }
 
-int BaseASN1::DecodeUnsignedChar(ITCAST_ANYBUF *inBuf, unsigned char **Data, int *pDataLen)
+int BaseASN1::DecodeUnsignedChar(My_ANYBUF *inBuf, unsigned char **Data, int *pDataLen)
 {
-    ITCAST_ANYBUF	*pTmp = NULL;
+    My_ANYBUF	*pTmp = NULL;
     int			rv;
 
     rv = DER_ItAsn1_ReadBitString(inBuf, &pTmp);
     if (rv != 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"DecodeUnsignedChar  error");
         return -1;
     }
 
     if (pTmp->dataLen == 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         *Data = NULL;
         *pDataLen = 0;
         return 0;
@@ -1241,7 +1241,7 @@ int BaseASN1::DecodeUnsignedChar(ITCAST_ANYBUF *inBuf, unsigned char **Data, int
     *Data = (unsigned char*)malloc(pTmp->dataLen + 1);
     if (*Data == NULL)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"DecodeUnsignedChar_an Mallco *Data Malloc  error");
         return -1;
     }
@@ -1249,14 +1249,14 @@ int BaseASN1::DecodeUnsignedChar(ITCAST_ANYBUF *inBuf, unsigned char **Data, int
     memcpy(*Data, pTmp->pData, pTmp->dataLen);
     *pDataLen = pTmp->dataLen;
 
-    DER_ITCAST_FreeQueue(pTmp);
+    DER_My_FreeQueue(pTmp);
 
     return 0;
 }
 
-int BaseASN1::EncodeChar(char *pData, int dataLen, ITCAST_ANYBUF **outBuf)
+int BaseASN1::EncodeChar(char *pData, int dataLen, My_ANYBUF **outBuf)
 {
-    ITCAST_ANYBUF	*pHeadBuf = NULL, *pTmp = NULL;
+    My_ANYBUF	*pHeadBuf = NULL, *pTmp = NULL;
     int			rv;
 
     //输入值不合法
@@ -1271,10 +1271,10 @@ int BaseASN1::EncodeChar(char *pData, int dataLen, ITCAST_ANYBUF **outBuf)
     }
     else if (pData == NULL && dataLen == 0)
     {
-        rv = DER_ITCAST_String_To_AnyBuf(&pTmp, NULL, 0);
+        rv = DER_My_String_To_AnyBuf(&pTmp, NULL, 0);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
 
             return -1;
@@ -1283,8 +1283,8 @@ int BaseASN1::EncodeChar(char *pData, int dataLen, ITCAST_ANYBUF **outBuf)
         rv = DER_ItAsn1_WritePrintableString(pTmp, &pHeadBuf);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
-            DER_ITCAST_FreeQueue(pHeadBuf);
+            DER_My_FreeQueue(pTmp);
+            DER_My_FreeQueue(pHeadBuf);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
 
             return -1;
@@ -1293,47 +1293,47 @@ int BaseASN1::EncodeChar(char *pData, int dataLen, ITCAST_ANYBUF **outBuf)
     }
     else
     {
-        rv = DER_ITCAST_String_To_AnyBuf(&pTmp, (unsigned char*)pData, dataLen);
+        rv = DER_My_String_To_AnyBuf(&pTmp, (unsigned char*)pData, dataLen);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
             return -1;
         }
         rv = DER_ItAsn1_WritePrintableString(pTmp, &pHeadBuf);
         if (rv != 0)
         {
-            DER_ITCAST_FreeQueue(pHeadBuf);
-            DER_ITCAST_FreeQueue(pTmp);
+            DER_My_FreeQueue(pHeadBuf);
+            DER_My_FreeQueue(pTmp);
             //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"unsigned char*编码   error");
 
             return -1;
         }
 
     }
-    DER_ITCAST_FreeQueue(pTmp);
+    DER_My_FreeQueue(pTmp);
 
     *outBuf = pHeadBuf;
 
     return 0;
 }
 
-int BaseASN1::DecodeChar(ITCAST_ANYBUF *inBuf, char **Data, int *pDataLen)
+int BaseASN1::DecodeChar(My_ANYBUF *inBuf, char **Data, int *pDataLen)
 {
-    ITCAST_ANYBUF	*pTmp = NULL;
+    My_ANYBUF	*pTmp = NULL;
     int			rv;
 
     rv = DER_ItAsn1_ReadPrintableString(inBuf, &pTmp);
     if (rv != 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"DecodeUnsignedChar  error");
         return -1;
     }
 
     if (pTmp->dataLen == 0)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         *Data = NULL;
         *pDataLen = 0;
         return 0;
@@ -1342,7 +1342,7 @@ int BaseASN1::DecodeChar(ITCAST_ANYBUF *inBuf, char **Data, int *pDataLen)
     *Data = (char*)malloc(pTmp->dataLen + 1);
     if (*Data == NULL)
     {
-        DER_ITCAST_FreeQueue(pTmp);
+        DER_My_FreeQueue(pTmp);
         //DER_DAPR_DebugMessage(_DEBUG_FILE_,__FILE__,__LINE__,"DecodeChar_an Mallco *Data Malloc  error");
         return -1;
     }
@@ -1350,19 +1350,19 @@ int BaseASN1::DecodeChar(ITCAST_ANYBUF *inBuf, char **Data, int *pDataLen)
     memcpy(*Data, pTmp->pData, pTmp->dataLen);
     *pDataLen = pTmp->dataLen;
 
-    DER_ITCAST_FreeQueue(pTmp);
+    DER_My_FreeQueue(pTmp);
 
     return 0;
 }
 
-int BaseASN1::DER_CREATE_LOW_ITCAST_ANYBUF(ITCAST_ANYBUF *&point)
+int BaseASN1::DER_CREATE_LOW_My_ANYBUF(My_ANYBUF *&point)
 {
-    point = (ITCAST_ANYBUF *)malloc(sizeof(ITCAST_ANYBUF));
+    point = (My_ANYBUF *)malloc(sizeof(My_ANYBUF));
     if (point == NULL)
     {
         return 7002;
     }
-    memset(point, 0, sizeof(ITCAST_ANYBUF));
+    memset(point, 0, sizeof(My_ANYBUF));
     point->dataLen = 0;
     point->dataType = 0;
     point->memoryType = MallocMemory;
