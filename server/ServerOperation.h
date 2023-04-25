@@ -3,7 +3,7 @@
 #include "SecKeyShm.h"
 #include "TcpServer.h"
 #include "RequestCodec.h"
-// #include "OCCIOP.h"
+#include "CMysqlOP.h"
 #include <pthread.h>
 #include <map>
 
@@ -57,7 +57,7 @@ private:
 	SecKeyShm* m_shm;
 	TcpServer m_server;
 	TcpSocket* m_client;
-	// OCCIOP m_occi;
+	CMysqlOP m_databaseOP;
 	std::map<pthread_t, TcpSocket*> m_listSocket;
 	// pthread_mutex_t m_socketListLock = PTHREAD_MUTEX_INITIALIZER;
 	static bool m_stop;

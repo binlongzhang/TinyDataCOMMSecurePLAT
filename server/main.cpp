@@ -1,3 +1,10 @@
+/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 12:21:32
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-24 08:13:38
+ */
 #include <cstdio>
 #include "ServerOperation.h"
 #include <sys/ipc.h>
@@ -13,7 +20,7 @@ void createDeamon();
 
 int main()
 {
-	//createDeamon();
+	createDeamon();
     // 启动服务器
 	ServerInfo info;
 	info.maxnode = 20;

@@ -1,4 +1,11 @@
-﻿#include "ServerOperation.h"
+﻿/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 20:51:28
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-25 06:32:43
+ */
+#include "ServerOperation.h"
 #include <iostream>
 #include <pthread.h>
 #include <string.h>
@@ -6,24 +13,21 @@
 #include "RespondFactory.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
-#include <signal.h> 
+#include <signal.h>
 using namespace std;
 
-bool ServerOperation::m_stop = false;	// 静态变量初始化
+bool ServerOperation::m_stop = false; // 静态变量初始化
 
-ServerOperation::ServerOperation(ServerInfo * info)
+ServerOperation::ServerOperation(ServerInfo *info)
 {
 	memcpy(&m_info, info, sizeof(ServerInfo));
 	// 创建共享内存对象
 	m_shm = new SecKeyShm(info->shmkey, info->maxnode);
 	// 	初始化socket map自旋锁
-	pthread_spin_init(&m_spinlock_SocketMap,PTHREAD_PROCESS_PRIVATE);
-	// 连接oracle数据库
-	// bool bl = m_occi.connectDB("SECMNG", "SECMNG", "192.168.10.145:1521/orcl");
-	// if (!bl)
-	// {
-	// 	cout << "数据库 Oracle 连接失败..." << endl;
-	// }
+	pthread_spin_init(&m_spinlock_SocketMap, PTHREAD_PROCESS_PRIVATE);
+	if(!m_databaseOP.connectDB("localhost","zhangbinglong","1094859023","ssl_proj")){
+        std::cout<< "conenet error"<<std::endl;
+    }
 }
 
 ServerOperation::~ServerOperation()
@@ -32,10 +36,10 @@ ServerOperation::~ServerOperation()
 	delete m_shm;
 	// destroy socketMap 锁
 	pthread_spin_destroy(&m_spinlock_SocketMap);
-	// m_occi.closeDB();
+	m_databaseOP.closeDB();
 }
 
-//负责监听文件描述符，具体的读写操作交由线程处理
+// 负责监听文件描述符，具体的读写操作交由线程处理
 void ServerOperation::startWork()
 {
 	// 注册新号捕捉 signal / sigaction
@@ -48,23 +52,19 @@ void ServerOperation::startWork()
 	// 1. 通过套接字对象设置监听
 	m_server.setListen(m_info.sPort);
 	// 2. 等待并接受连接请求
-	while (1)
+	while (!m_stop)
 	{
-		if (m_stop)
-		{
-			cout << "应用程序即将退出..." << endl;
-			break;
-		}
-		TcpSocket* socket = m_server.acceptConn(5);
+		TcpSocket *socket = m_server.acceptConn(5);
 		if (socket == NULL)
 		{
-			cout << "accept 超时，使用阻塞多线程模型，此处可优化:" <<__FILE__<<":"<<__LINE__<< endl;
+			cout << "accept 超时，使用阻塞多线程模型，此处可优化:" << __FILE__ << ":" << __LINE__ << endl;
 			continue;
 		}
 		cout << "客户端成功连接服务器..." << endl;
 		// 创建子线程
 		pthread_t pid;
 		// 先加锁，确保放入之后再解锁
+
 		pthread_spin_lock(&m_spinlock_SocketMap);
 		pthread_create(&pid, NULL, wrokingHard, this);
 		// 线程分离, 子线程自己释放pcb
@@ -72,63 +72,63 @@ void ServerOperation::startWork()
 		m_listSocket.insert(make_pair(pid, socket));
 		pthread_spin_unlock(&m_spinlock_SocketMap);
 	}
+	cout << "应用程序即将退出..." << endl;
 }
 
-int ServerOperation::secKeyAgree(RequestMsg * reqMsg, char ** outData, int & outLen)
+int ServerOperation::secKeyAgree(RequestMsg *reqMsg, char **outData, int &outLen)
 {
 	RespondMsg resMsg;
 	// 1. 生成秘钥 = 客户端的随机数+服务器的随机数
 	getRandString(sizeof(resMsg.r2), resMsg.r2);
 	// 1.1 生成秘钥
-	char key[1024] = { 0 };
+	char key[1024] = {0};
 	unsigned char mdSha[SHA_DIGEST_LENGTH];
 	sprintf(key, "%s%s", reqMsg->r1, resMsg.r2);
-	SHA1((unsigned char*)key, strlen(key), (unsigned char*)mdSha);
+	SHA1((unsigned char *)key, strlen(key), (unsigned char *)mdSha);
 	for (int i = 0; i < SHA_DIGEST_LENGTH; ++i)
 	{
 		sprintf(&key[i * 2], "%02x", mdSha[i]);
 	}
 	cout << "服务器端生成的秘钥: " << key << endl;
 
-	//2. 秘钥信息写入数据库
-	// 2.1 从数据库中秘钥编号
-	// resMsg.seckeyid = m_occi.getKeyID();
-	resMsg.seckeyid = 123456789;
+	// 2. 秘钥信息写入数据库
+	//  2.1 从数据库中秘钥编号
+	//  resMsg.seckeyid = m_occi.getKeyID();
+	resMsg.seckeyid = this->m_databaseOP.getKeyID();
 	NodeSHMInfo shmInfo;
 	shmInfo.status = 1;
-	shmInfo.seckeyID = resMsg.seckeyid;	// 从数据中读出的
+	shmInfo.seckeyID = resMsg.seckeyid; // 从数据中读出的
 	strcpy(shmInfo.clientID, reqMsg->clientId);
 	strcpy(shmInfo.seckey, key);
 	strcpy(shmInfo.serverID, m_info.serverID);
 	// 2.2 秘钥写入数据库
-	// bool bl = m_occi.writeSecKey(&shmInfo);
-	// if (!bl)
-	// {
-	// 	cout << "写秘钥失败..." << endl;
-	// }
-	// cout << "写秘钥完成..." << endl;
-	// m_occi.updataKeyID(resMsg.seckeyid + 1);
+	if(!m_databaseOP.writeSecKey(&shmInfo))
+	{
+		cout << "写秘钥失败..." << endl;
+	}
+	cout << "写秘钥完成..." << endl;
+	m_databaseOP.updataKeyID(resMsg.seckeyid + 1);
 
 	// 3. 秘钥写入共享内存
 	m_shm->shmWrite(&shmInfo);
 
 	// 4. 组织给客户端发送的响应数据
-	resMsg.rv = 0;	// 0: 成功, -1: 失败
+	resMsg.rv = 0; // 0: 成功, -1: 失败
 	resMsg.seckeyid = resMsg.seckeyid;
 	strcpy(resMsg.clientId, reqMsg->clientId);
 	strcpy(resMsg.serverId, m_info.serverID);
 
 	// 5. 数据序列化
 	// 6. 传出参数赋值
-	CodecFactory* factory = new RespondFactory(&resMsg);
-	Codec* codec = factory->createCodec();
+	CodecFactory *factory = new RespondFactory(&resMsg);
+	Codec *codec = factory->createCodec();
 	codec->msgEncode(outData, outLen);
 
 	return 0;
 }
 
 // 静态函数
-void * ServerOperation::wrokingHard(void * arg)
+void *ServerOperation::wrokingHard(void *arg)
 {
 	// 1. 不能调用非静态函数或者变量
 	// 2. 静态函数不属于对象
@@ -136,31 +136,31 @@ void * ServerOperation::wrokingHard(void * arg)
 	// 4. 变通方式: 将类对象(this)作为参数传递给静态函数
 	// 1. 接收数据
 	int recvLen = -1;
-	char* recvBuf = NULL;
-	ServerOperation *sop = (ServerOperation*)arg;
+	char *recvBuf = NULL;
+	ServerOperation *sop = (ServerOperation *)arg;
 	pthread_t threadID = pthread_self();
-	
+
 	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
-	TcpSocket* socket = sop->m_listSocket[threadID];
+	TcpSocket *socket = sop->m_listSocket[threadID];
 	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
 
 	// recvBuf -> 客户端序列化之后的数据
 	socket->recvMsg(&recvBuf, recvLen);
 
 	// 2. 序列化之后的数据解码
-	CodecFactory* factory = new RequestFactory();
-	Codec* codec = factory->createCodec();
-	RequestMsg * reqMsg = (RequestMsg*)codec->msgDecode(recvBuf, recvLen);
+	CodecFactory *factory = new RequestFactory();
+	Codec *codec = factory->createCodec();
+	RequestMsg *reqMsg = (RequestMsg *)codec->msgDecode(recvBuf, recvLen);
 
 	// 3. 验证消息认证码 - 原始数据(r1)+秘钥
-	char key[1024] = { 0 };
+	char key[1024] = {0};
 	unsigned int mdLen = -1;
 	unsigned char mdHmac[SHA256_DIGEST_LENGTH];
 	sprintf(key, "@%s+%s@", sop->m_info.serverID, reqMsg->clientId);
 	cout << "原始数据: " << reqMsg->r1 << endl;
 	cout << "key: " << key << endl;
 	HMAC(EVP_sha256(), key, strlen(key),
-		(unsigned char*)reqMsg->r1, strlen(reqMsg->r1), mdHmac, &mdLen);
+		 (unsigned char *)reqMsg->r1, strlen(reqMsg->r1), mdHmac, &mdLen);
 	for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
 	{
 		sprintf(&key[i * 2], "%02x", mdHmac[i]);
@@ -178,7 +178,7 @@ void * ServerOperation::wrokingHard(void * arg)
 
 	// 4. 判断cmdType
 	int len = -1;
-	char* outData = NULL;
+	char *outData = NULL;
 	switch (reqMsg->cmdType)
 	{
 	case RequestCodec::NewOrUpdate:
@@ -204,8 +204,6 @@ void * ServerOperation::wrokingHard(void * arg)
 	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
 
 	delete socket;
-
-	
 	return nullptr;
 }
 
@@ -216,7 +214,7 @@ void ServerOperation::catchSignal(int num)
 	m_stop = true;
 }
 
-void ServerOperation::getRandString(int len, char * randBuf)
+void ServerOperation::getRandString(int len, char *randBuf)
 {
 	int flag = -1;
 	// 设置随机种子
@@ -249,34 +247,34 @@ void ServerOperation::getRandString(int len, char * randBuf)
 
 // 友元函数, 可以在该友元函数中通过对应的类对象调用期私有成员函数或者私有变量
 // 子线程 - 进行业务流程处理
-void * wroking(void * arg)
+void *wroking(void *arg)
 {
 	// 1. 接收数据
 	int recvLen = -1;
-	char* recvBuf = NULL;
-	ServerOperation *sop = (ServerOperation*)arg;
+	char *recvBuf = NULL;
+	ServerOperation *sop = (ServerOperation *)arg;
 	pthread_t threadID = pthread_self();
 	pthread_spin_lock(&(sop->m_spinlock_SocketMap));
-	TcpSocket* socket = sop->m_listSocket[threadID];
+	TcpSocket *socket = sop->m_listSocket[threadID];
 	pthread_spin_unlock(&(sop->m_spinlock_SocketMap));
 
 	// recvBuf -> 客户端序列化之后的数据
 	socket->recvMsg(&recvBuf, recvLen);
 
 	// 2. 序列化之后的数据解码
-	CodecFactory* factory = new RequestFactory();
-	Codec* codec = factory->createCodec();
-	RequestMsg * reqMsg = (RequestMsg*)codec->msgDecode(recvBuf, recvLen);
+	CodecFactory *factory = new RequestFactory();
+	Codec *codec = factory->createCodec();
+	RequestMsg *reqMsg = (RequestMsg *)codec->msgDecode(recvBuf, recvLen);
 
 	// 3. 验证消息认证码 - 原始数据(r1)+秘钥
-	char key[1024] = { 0 };
+	char key[1024] = {0};
 	unsigned int mdLen = -1;
 	unsigned char mdHmac[SHA256_DIGEST_LENGTH];
 	sprintf(key, "@%s+%s@", sop->m_info.serverID, reqMsg->clientId);
 	cout << "原始数据: " << reqMsg->r1 << endl;
 	cout << "key: " << key << endl;
-	HMAC(EVP_sha256(), key, strlen(key), 
-		(unsigned char*)reqMsg->r1, strlen(reqMsg->r1), mdHmac, &mdLen);
+	HMAC(EVP_sha256(), key, strlen(key),
+		 (unsigned char *)reqMsg->r1, strlen(reqMsg->r1), mdHmac, &mdLen);
 	for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
 	{
 		sprintf(&key[i * 2], "%02x", mdHmac[i]);
@@ -294,7 +292,7 @@ void * wroking(void * arg)
 
 	// 4. 判断cmdType
 	int len = -1;
-	char* outData = NULL;
+	char *outData = NULL;
 	switch (reqMsg->cmdType)
 	{
 	case RequestCodec::NewOrUpdate:
@@ -303,7 +301,7 @@ void * wroking(void * arg)
 		break;
 	case RequestCodec::Check:
 		break;
-	case RequestCodec::Revoke:  
+	case RequestCodec::Revoke:
 		break;
 	default:
 		break;
