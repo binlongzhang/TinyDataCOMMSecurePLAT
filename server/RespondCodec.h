@@ -1,8 +1,17 @@
-﻿#pragma once
+﻿/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 12:21:33
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-26 05:59:05
+ */
+#pragma once
 #include "Codec.h"
 
 struct  RespondMsg
 {
+	enum RV{Success=0, DataPassErr,ClientNoExist};
+
     int	rv;		// 返回值
 	char	clientId[12];	// 客户端编号
 	char	serverId[12];	// 服务器编号

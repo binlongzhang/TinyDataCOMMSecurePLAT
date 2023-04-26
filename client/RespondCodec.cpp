@@ -1,3 +1,10 @@
+/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 12:25:07
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-26 05:59:12
+ */
 #include <stdio.h>
 #include <string.h>
 #include "RespondCodec.h"
@@ -10,10 +17,10 @@ RespondCodec::RespondCodec() : Codec()
 RespondCodec::RespondCodec(RespondMsg *msg) : Codec()
 {
 	m_msg.rv = msg->rv;
+	m_msg.seckeyid = msg->seckeyid;
 	strcpy(m_msg.clientId, msg->clientId);
 	strcpy(m_msg.serverId, msg->serverId);
 	strcpy(m_msg.r2, msg->r2);
-	m_msg.seckeyid = msg->seckeyid;
 }
 
 RespondCodec::~RespondCodec()

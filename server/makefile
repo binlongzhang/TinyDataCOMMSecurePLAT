@@ -9,6 +9,11 @@ $(target):$(objs)
 %.o:%.cpp
 	g++ -g -std=c++11 -c $< $(LIBS) 
 
+testDataBase:testDataBase.o CMysqlOP.o MyLog.o SecKeyShm.o ShareMemory.o
+	g++ -g -o $@ $^ $(LIBS) 
+
+
+
 .PHONY:clean
 clean:
 	rm -f $(target) $(objs)

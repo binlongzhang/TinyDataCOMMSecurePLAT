@@ -3,7 +3,7 @@
  * @Author: binlongzhang binlong_zhang@163.com
  * @Date: 2023-04-25 02:40:42
  * @LastEditors: binlongzhang binlong_zhang@163.com
- * @LastEditTime: 2023-04-25 05:01:05
+ * @LastEditTime: 2023-04-25 12:33:22
  */
 #pragma once
 #include <string>
@@ -22,6 +22,7 @@ public:
 	int getKeyID();
 	bool updataKeyID(int keyID);
 	bool writeSecKey(NodeSHMInfo *pNode);
+	bool checkClientID(std::string clientID);
 	void closeDB();
 
 private:

@@ -3,7 +3,7 @@
  * @Author: binlongzhang binlong_zhang@163.com
  * @Date: 2023-04-25 02:47:30
  * @LastEditors: binlongzhang binlong_zhang@163.com
- * @LastEditTime: 2023-04-25 05:58:54
+ * @LastEditTime: 2023-04-25 22:12:57
  */
 #include "CMysqlOP.h"
 #include <iostream>
@@ -103,6 +103,21 @@ bool CMysqlOP::writeSecKey(NodeSHMInfo *pNode)
     }
 	return true;
 }
+
+bool CMysqlOP::checkClientID(std::string clientID){
+	// 查询数据库
+	std::string psql = "select * from secnode where id=" + clientID;
+    if (mysql_query(&mysql, psql.data()))
+    {
+        fprintf(stderr, "Failed to '%s': Error: %s\n", psql.data(), mysql_error(&mysql));
+        return false;
+    }
+	
+	/*获取结果*/
+    MYSQL_RES *result = mysql_store_result(&mysql);
+	return result->row_count;
+}
+
 
 void CMysqlOP::closeDB()
 {

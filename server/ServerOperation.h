@@ -40,7 +40,7 @@ public:
 	// 秘钥查看
 	int secKeyView();
 
-	friend void* wroking(void * arg);
+	// friend void* wroking(void * arg);
 	// 线程回调也可使用静态成员函数
 	static void* wrokingHard(void* arg);
 	static void catchSignal(int num);
@@ -51,6 +51,7 @@ public:
 
 private:
 	void getRandString(int len, char* randBuf);
+	bool vaildRequest(RequestMsg * reqMsg, char** outData, int& outLen);
 
 private:
 	ServerInfo m_info;

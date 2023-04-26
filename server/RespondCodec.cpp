@@ -1,3 +1,10 @@
+/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 12:25:07
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-26 05:59:12
+ */
 #include <stdio.h>
 #include <string.h>
 #include "RespondCodec.h"

@@ -3,10 +3,10 @@ objs=$(patsubst %.cpp,%.o,$(src))
 target=clientMain
 LIBS=-lstdc++ -lssl -lcrypto
 $(target):$(objs)
-	g++ -o $@ $^ $(LIBS) 
+	g++ -g -o $@ $^ $(LIBS) 
 
 %.o:%.cpp
-	g++ -std=c++11 -c $<
+	g++ -g -std=c++11 -c $<
 
 .PHONY:clean
 clean:

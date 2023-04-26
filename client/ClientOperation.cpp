@@ -77,49 +77,52 @@ int ClientOperation::secKeyAgree()
 	pCodec = factory->createCodec();
 	RespondMsg *pMsg = (RespondMsg *)pCodec->msgDecode(inData, dataLen);
 
-	//判断服务端是否成功
-	if (pMsg->rv == -1){
-		cout << "秘钥协商失败" << endl;
-		return -1;
-	}else{
-		cout << "秘钥协商成功" << endl;
+	switch (pMsg->rv)
+	{
+	case RespondMsg::Success:
+		std::cout << "秘钥协商成功" << std::endl;
+		//将服务端的r2和客户端的r1拼接生成秘钥
+		unsigned char md1[SHA_DIGEST_LENGTH];
+		memset(md1, 0x00, sizeof(md1));
+		// 感觉没必要这么大
+		char seckey[SHA_DIGEST_LENGTH*2+1];
+		memset(seckey, 0x00, sizeof(seckey));
+		
+		char buf[1024];
+		memset(buf, 0x00, sizeof(buf));
+		sprintf(buf, "%s%s", req.r1, pMsg->r2);
+		SHA1((unsigned char *)buf, strlen((char *)buf), md1);
+		for(int i=0; i<SHA_DIGEST_LENGTH; i++)
+		{ 
+			sprintf(&seckey[i*2], "%02x", md1[i]);
+		}
+		cout << "秘钥: " << seckey << endl;
+
+		//给秘钥结构体赋值
+		NodeSHMInfo node;
+		memset(&node, 0x00, sizeof(NodeSHMInfo));
+		node.status = 0;
+		strcpy(node.seckey, seckey);
+		strcpy(node.clientID, m_info.clinetID);
+		strcpy(node.serverID, m_info.serverID);
+		node.seckeyID = pMsg->seckeyid;
+
+		//将秘钥信息写入共享内存
+		m_shm->shmWrite(&node);
+		/* code */
+		break;
+	case RespondMsg::ClientNoExist:
+		std::cout << "客户端为注册，请注册后再申请！" << std::endl;
+		break;
+	case RespondMsg::DataPassErr:
+		std::cout << "秘钥传输过程中出错，请重新申请！" << std::endl;
+		break;
+	default:
+		break;
 	}
-
-
-	//将服务端的r2和客户端的r1拼接生成秘钥
-	unsigned char md1[SHA_DIGEST_LENGTH];
-	memset(md1, 0x00, sizeof(md1));
-
 	
-	// 感觉没必要这么大
-	char seckey[SHA_DIGEST_LENGTH*2+1];
-	memset(seckey, 0x00, sizeof(seckey));
-	
-	char buf[1024];
-	memset(buf, 0x00, sizeof(buf));
-	sprintf(buf, "%s%s", req.r1, pMsg->r2);
-	SHA1((unsigned char *)buf, strlen((char *)buf), md1);
-	for(int i=0; i<SHA_DIGEST_LENGTH; i++)
-	{ 
-		sprintf(&seckey[i*2], "%02x", md1[i]);
-	}
-	cout << "秘钥: " << seckey << endl;
-
-	//给秘钥结构体赋值
-	NodeSHMInfo node;
-	memset(&node, 0x00, sizeof(NodeSHMInfo));
-	node.status = 0;
-	strcpy(node.seckey, seckey);
-	strcpy(node.clientID, m_info.clinetID);
-	strcpy(node.serverID, m_info.serverID);
-	node.seckeyID = pMsg->seckeyid;
-
-	//将秘钥信息写入共享内存
-	m_shm->shmWrite(&node);
-
 	//关闭网络连接
 	m_socket.disConnect();
-
 	//释放资源
 	delete factory;
 	delete pCodec;
