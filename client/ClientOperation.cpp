@@ -4,24 +4,29 @@
 #include <time.h>
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
-#include "CodecFactory.h"
-#include "RequestFactory.h"
-#include "RespondFactory.h"
 #include <iostream>
+#include <openssl/evp.h>
 
 using namespace std;
 
 ClientOperation::ClientOperation(ClientInfo * info)
 {
-	memcpy(&m_info, info, sizeof(ClientInfo));
-
+	memcpy(&m_info, info, sizeof(ClientInfo)); 
 	//创建共享内存
 	m_shm = new SecKeyShm(m_info.shmKey, m_info.maxNode);
+
+		// 初始化共享内存所需的读写锁
+	pthread_rwlockattr_t rw_att;
+	pthread_rwlockattr_init(&rw_att);
+    pthread_rwlockattr_setkind_np(&rw_att, PTHREAD_RWLOCK_PREFER_WRITER_NP);
+    pthread_rwlockattr_setpshared(&rw_att, PTHREAD_PROCESS_SHARED);
+    pthread_rwlock_init(&shmem_wlock, &rw_att);
+    pthread_rwlockattr_destroy(&rw_att);
 }
 
 ClientOperation::~ClientOperation()
 {
-
+	pthread_rwlock_destroy(&shmem_wlock);
 }
 
 
@@ -63,7 +68,10 @@ int ClientOperation::secKeyAgree()
 	delete pCodec;
 
 	//连接服务端
-	m_socket.connectToHost(m_info.serverIP, m_info.serverPort);
+	if(m_socket.connectToHost(m_info.serverIP, m_info.serverPort)!=0){
+		cout << "服务端连接失败，请验证服务端IP地址！" << endl;
+		exit(-1);
+	}
 
 	//发送请求数据给服务端
 	m_socket.sendMsg(outData, dataLen);
@@ -76,6 +84,9 @@ int ClientOperation::secKeyAgree()
 	factory = new RespondFactory();
 	pCodec = factory->createCodec();
 	RespondMsg *pMsg = (RespondMsg *)pCodec->msgDecode(inData, dataLen);
+	
+	// 用于存储写入共享内存的秘钥信息
+	NodeSHMInfo node;
 
 	switch (pMsg->rv)
 	{
@@ -84,22 +95,22 @@ int ClientOperation::secKeyAgree()
 		//将服务端的r2和客户端的r1拼接生成秘钥
 		unsigned char md1[SHA_DIGEST_LENGTH];
 		memset(md1, 0x00, sizeof(md1));
-		// 感觉没必要这么大
 		char seckey[SHA_DIGEST_LENGTH*2+1];
 		memset(seckey, 0x00, sizeof(seckey));
 		
 		char buf[1024];
 		memset(buf, 0x00, sizeof(buf));
 		sprintf(buf, "%s%s", req.r1, pMsg->r2);
-		SHA1((unsigned char *)buf, strlen((char *)buf), md1);
+		// SHA1((unsigned char *)buf, strlen((char *)buf), md1);
+		EVP_Digest(buf,strlen((char *)buf),md1,NULL,EVP_sha1(),NULL);
 		for(int i=0; i<SHA_DIGEST_LENGTH; i++)
 		{ 
 			sprintf(&seckey[i*2], "%02x", md1[i]);
 		}
-		cout << "秘钥: " << seckey << endl;
+		cout << "秘钥1: " << seckey << endl;
+		
 
 		//给秘钥结构体赋值
-		NodeSHMInfo node;
 		memset(&node, 0x00, sizeof(NodeSHMInfo));
 		node.status = 0;
 		strcpy(node.seckey, seckey);
@@ -108,11 +119,17 @@ int ClientOperation::secKeyAgree()
 		node.seckeyID = pMsg->seckeyid;
 
 		//将秘钥信息写入共享内存
+		pthread_rwlock_wrlock(&shmem_wlock);
 		m_shm->shmWrite(&node);
+		pthread_rwlock_unlock(&shmem_wlock);
+
 		/* code */
 		break;
 	case RespondMsg::ClientNoExist:
 		std::cout << "客户端为注册，请注册后再申请！" << std::endl;
+		break;
+	case RespondMsg::ServerIDError:
+		std::cout << "服务端ID错误，请重启后输入正确服务端ID！" << std::endl;
 		break;
 	case RespondMsg::DataPassErr:
 		std::cout << "秘钥传输过程中出错，请重新申请！" << std::endl;

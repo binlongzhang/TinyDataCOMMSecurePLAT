@@ -3,7 +3,7 @@
  * @Author: binlongzhang binlong_zhang@163.com
  * @Date: 2023-04-20 12:21:32
  * @LastEditors: binlongzhang binlong_zhang@163.com
- * @LastEditTime: 2023-04-24 08:13:38
+ * @LastEditTime: 2023-04-29 09:07:45
  */
 #include <cstdio>
 #include "ServerOperation.h"
@@ -13,28 +13,40 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <string>
 #include <iostream>
 using namespace std;
 
 void createDeamon();
 
-int main()
+int main(int argc, char *argv[])
 {
-	createDeamon();
-    // 启动服务器
-	ServerInfo info;
-	info.maxnode = 20;
-	info.sPort = 9898;
-	info.shmkey = ftok("/home", 'w');
-	strcpy(info.serverID, "0001");
 
-	
-	ServerOperation op(&info);
+	if (argc < 8)
+	{
+		printf("按照如下格式运行: ./%s serverID maxServerNode port databaseIP databaseUser databasePWD databasedbName \n", basename(argv[0]));
+		printf("e.g. ./%s 0001 20 9898 localhost  root password dbName\n", basename(argv[0]));
+		return -1;
+	}
+	std::string dbIP(argv[4]);
+	std::string dbUser(argv[5]);
+	std::string dbPWD(argv[6]);
+	std::string dbName(argv[7]);
+
+	createDeamon();
+	// 启动服务器
+	ServerInfo info;
+	strcpy(info.serverID, argv[1]);
+	info.maxnode = atoi(argv[2]);
+	info.sPort = atoi(argv[3]);
+	info.shmkey = ftok("/home", 'w');
+
+	ServerOperation op(&info, dbIP, dbUser, dbPWD, dbName);
 	op.startWork();
 
 	cout << "good bye..." << endl;
 
-    return 0;
+	return 0;
 }
 
 void createDeamon()

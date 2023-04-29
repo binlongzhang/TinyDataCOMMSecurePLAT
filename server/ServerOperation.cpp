@@ -3,14 +3,12 @@
  * @Author: binlongzhang binlong_zhang@163.com
  * @Date: 2023-04-20 20:51:28
  * @LastEditors: binlongzhang binlong_zhang@163.com
- * @LastEditTime: 2023-04-26 04:02:08
+ * @LastEditTime: 2023-04-29 09:34:44
  */
 #include "ServerOperation.h"
 #include <iostream>
 #include <pthread.h>
 #include <string.h>
-#include "RequestFactory.h"
-#include "RespondFactory.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <signal.h>
@@ -18,16 +16,27 @@ using namespace std;
 
 bool ServerOperation::m_stop = false; // 静态变量初始化
 
-ServerOperation::ServerOperation(ServerInfo *info)
+ServerOperation::ServerOperation(ServerInfo *info, std::string dbIP, std::string dbUser, std::string dbPWD, std::string dbName)
+
 {
 	memcpy(&m_info, info, sizeof(ServerInfo));
 	// 创建共享内存对象
 	m_shm = new SecKeyShm(info->shmkey, info->maxnode);
 	// 	初始化socket map自旋锁
 	pthread_spin_init(&m_spinlock_SocketMap, PTHREAD_PROCESS_PRIVATE);
-	if (!m_databaseOP.connectDB("localhost", "zhangbinglong", "1094859023", "ssl_proj"))
+
+	// 初始化共享内存所需的读写锁
+	pthread_rwlockattr_t rw_att;
+	pthread_rwlockattr_init(&rw_att);
+    pthread_rwlockattr_setkind_np(&rw_att, PTHREAD_RWLOCK_PREFER_WRITER_NP);
+    pthread_rwlockattr_setpshared(&rw_att, PTHREAD_PROCESS_SHARED);
+    pthread_rwlock_init(&shmem_wlock, &rw_att);
+    pthread_rwlockattr_destroy(&rw_att);
+
+	if (!m_databaseOP.connectDB(dbIP, dbUser, dbPWD, dbName))
 	{
-		std::cout << "conenet error" << std::endl;
+		std::cout << "data base conenet error" << std::endl;
+		exit(-1);
 	}
 }
 
@@ -37,6 +46,7 @@ ServerOperation::~ServerOperation()
 	delete m_shm;
 	// destroy socketMap 锁
 	pthread_spin_destroy(&m_spinlock_SocketMap);
+	pthread_rwlock_destroy(&shmem_wlock);
 	m_databaseOP.closeDB();
 }
 
@@ -58,7 +68,7 @@ void ServerOperation::startWork()
 		TcpSocket *socket = m_server.acceptConn(5);
 		if (socket == NULL)
 		{
-			cout << "accept 超时，使用阻塞多线程模型，此处可优化为使用线城池处理的Reactor模式:" << __FILE__ << ":" << __LINE__ << endl;
+			cout << "accept 超时，使用阻塞多线程模型，此处可优化为使用线程池处理的Reactor模式:" << __FILE__ << ":" << __LINE__ << endl;
 			continue;
 		}
 		cout << "客户端成功连接服务器..." << endl;
@@ -85,7 +95,8 @@ int ServerOperation::secKeyAgree(RequestMsg *reqMsg, char **outData, int &outLen
 	char key[1024] = {0};
 	unsigned char mdSha[SHA_DIGEST_LENGTH];
 	sprintf(key, "%s%s", reqMsg->r1, resMsg.r2);
-	SHA1((unsigned char *)key, strlen(key), (unsigned char *)mdSha);
+	EVP_Digest(key,strlen(key),mdSha,NULL,EVP_sha1(),NULL);
+	// SHA1((unsigned char *)key, strlen(key), (unsigned char *)mdSha);
 	for (int i = 0; i < SHA_DIGEST_LENGTH; ++i)
 	{
 		sprintf(&key[i * 2], "%02x", mdSha[i]);
@@ -110,7 +121,9 @@ int ServerOperation::secKeyAgree(RequestMsg *reqMsg, char **outData, int &outLen
 	m_databaseOP.updataKeyID(resMsg.seckeyid + 1);
 
 	// 3. 秘钥写入共享内存
+	pthread_rwlock_wrlock(&shmem_wlock);
 	m_shm->shmWrite(&shmInfo);
+	pthread_rwlock_unlock(&shmem_wlock);
 
 	// 4. 组织给客户端发送的响应数据
 	resMsg.rv = RespondMsg::RV::Success; // 0: 成功, -1: 失败
@@ -231,12 +244,23 @@ void ServerOperation::getRandString(int len, char *randBuf)
 
 bool ServerOperation::vaildRequest(RequestMsg * reqMsg,char** outData, int& outLen){
 	if(!(m_databaseOP.checkClientID(reqMsg->clientId))){
-		RespondMsg resMsg = RespondMsg(reqMsg->clientId, reqMsg->serverId, "", RespondMsg::ClientNoExist,0);
+		char r2[]="";
+		RespondMsg resMsg = RespondMsg(reqMsg->clientId, reqMsg->serverId, r2, RespondMsg::ClientNoExist,0);
 		CodecFactory *factory = new RespondFactory(&resMsg);
 		Codec *codec = factory->createCodec();
 		codec->msgEncode(outData, outLen);
 		delete factory;
-		std::cout << "用户ID未注册!" << std::endl;
+		std::cout << "请求用户ID未注册!" << std::endl;
+		return false;
+	}
+	if(strcmp(reqMsg->serverId,m_info.serverID)!=0){
+		char r2[]="";
+		RespondMsg resMsg = RespondMsg(reqMsg->clientId, reqMsg->serverId, r2, RespondMsg::ServerIDError,0);
+		CodecFactory *factory = new RespondFactory(&resMsg);
+		Codec *codec = factory->createCodec();
+		codec->msgEncode(outData, outLen);
+		delete factory;
+		std::cout << "请求用户请求的服务器ID错误!" << std::endl;
 		return false;
 	}
 	

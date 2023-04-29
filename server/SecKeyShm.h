@@ -1,15 +1,13 @@
+/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-20 12:21:33
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-29 04:29:18
+ */
 #pragma once
 #include "ShareMemory.h"
-
-class NodeSHMInfo
-{
-public:
-	int status;
-	int seckeyID;
-	char clientID[12];
-	char serverID[12];
-	char seckey[128];
-};
+#include "NodeSHMInfo.h"
 
 
 // 当前版本以数组的形式存储，头存储了数组长度

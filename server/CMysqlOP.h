@@ -8,7 +8,7 @@
 #pragma once
 #include <string>
 #include <mysql/mysql.h>
-#include "SecKeyShm.h"
+#include "NodeSHMInfo.h"
 
 class CMysqlOP
 {

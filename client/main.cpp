@@ -1,3 +1,10 @@
+/*
+ * @version: 1.0
+ * @Author: binlongzhang binlong_zhang@163.com
+ * @Date: 2023-04-19 12:24:23
+ * @LastEditors: binlongzhang binlong_zhang@163.com
+ * @LastEditTime: 2023-04-29 08:04:52
+ */
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
@@ -12,14 +19,26 @@
 using namespace std;
 int usage();
 
-int main()
-{
+int main(int argc, char*argv[]){
+    
+    if(argc < 5){
+        printf("按照如下格式运行: ./%s serverIP server_port serverID clientID \n",basename(argv[0]));
+		printf("e.g. ./%s 127.0.0.1 9898 0001 1111 \n",basename(argv[0]));
+		return -1;
+    }
+	
 	ClientInfo info;
 	memset(&info, 0x00, sizeof(ClientInfo));
-	strcpy(info.clinetID, "1111");
-	strcpy(info.serverID, "0001");
-	strcpy(info.serverIP, "127.0.0.1");
-	info.serverPort = 9898;
+	// strcpy(info.serverIP, "127.0.0.1");
+	// info.serverPort = 9898;
+	// strcpy(info.serverID, "0001");
+	// strcpy(info.clinetID, "1111");
+
+	strcpy(info.serverIP, argv[1]);
+	info.serverPort = atoi(argv[2]);
+	strcpy(info.serverID, argv[3]);
+	strcpy(info.clinetID, argv[4]);
+
 	info.maxNode = 1;
 	info.shmKey = 0x12345678;
 	ClientOperation client(&info);
